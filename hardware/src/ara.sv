@@ -8,24 +8,29 @@
 
 module ara import ara_pkg::*; #(
     // RVV Parameters
-    parameter  int           unsigned NrLanes      = 0,                          // Number of parallel vector lanes.
+    parameter  int           unsigned NrLanes      = 2,                          // Number of parallel vector lanes.
     // Support for floating-point data types
     parameter  fpu_support_e          FPUSupport   = FPUSupportHalfSingleDouble,
     // AXI Interface
-    parameter  int           unsigned AxiDataWidth = 0,
-    parameter  int           unsigned AxiAddrWidth = 0,
-    parameter  type                   axi_ar_t     = logic,
-    parameter  type                   axi_r_t      = logic,
-    parameter  type                   axi_aw_t     = logic,
-    parameter  type                   axi_w_t      = logic,
-    parameter  type                   axi_b_t      = logic,
-    parameter  type                   axi_req_t    = logic,
-    parameter  type                   axi_resp_t   = logic,
+    parameter  int           unsigned AxiDataWidth = 64,
+    parameter  int           unsigned AxiAddrWidth = 64,
+    parameter  type                   axi_ar_t     = ariane_axi::ar_chan_t,
+    parameter  type                   axi_r_t      = ariane_axi::r_chan_t,
+    parameter  type                   axi_aw_t     = ariane_axi::aw_chan_t,
+    parameter  type                   axi_w_t      = ariane_axi::w_chan_t,
+    parameter  type                   axi_b_t      = ariane_axi::b_chan_t,
+    parameter  type                   axi_req_t    = ariane_axi::req_t,
+    parameter  type                   axi_resp_t   = ariane_axi::resp_t,
     // Dependant parameters. DO NOT CHANGE!
     // Ara has NrLanes + 3 processing elements: each one of the lanes, the vector load unit, the
     // vector store unit, the slide unit, and the mask unit.
     localparam int           unsigned NrPEs        = NrLanes + 4
   ) (
+    input logic clk200_p, 
+    input logic clk200_n,
+    input logic button_c
+
+    /*
     // Clock and Reset
     input  logic              clk_i,
     input  logic              rst_ni,
@@ -43,6 +48,45 @@ module ara import ara_pkg::*; #(
     // AXI interface
     output axi_req_t          axi_req_o,
     input  axi_resp_t         axi_resp_i
+    */
+  );
+
+logic clk_i;
+logic rst_ni;
+clk_wiz_0 clk_wiz_0_i (
+ .clk_out1(clk_i),      // output clk_out1
+ .reset(button_c),     // input reset
+ .locked(rst_ni),       // output locked
+ .clk_in1_p(clk200_p),  // input clk_in1_p
+ .clk_in1_n(clk200_n)); // input clk_in1_n
+
+logic              scan_enable_i;
+logic              scan_data_i;
+logic              scan_data_o;
+    // Interface with Ariane
+accelerator_req_t  acc_req_i;
+logic              acc_req_valid_i;
+logic              acc_req_ready_o;
+accelerator_resp_t acc_resp_o;
+logic              acc_resp_valid_o;
+logic              acc_resp_ready_i;
+    // AXI interface
+axi_req_t          axi_req_o;
+axi_resp_t         axi_resp_i;
+  
+  vio_0 vio_0_i (
+  .clk(clk_i),                   // input wire clk
+  .probe_in0(scan_data_o),       // input wire [0 : 0] probe_in0
+  .probe_in1(acc_req_ready_o),   // input wire [0 : 0] probe_in1
+  .probe_in2(acc_resp_o),        // input wire [0 : 0] probe_in2
+  .probe_in3(acc_resp_valid_o),  // input wire [0 : 0] probe_in3
+  .probe_in4(axi_req_o),         // input wire [0 : 0] probe_in4
+  .probe_out0(scan_enable_i),    // output wire [0 : 0] probe_out0
+  .probe_out1(scan_data_i),      // output wire [0 : 0] probe_out1
+  .probe_out2(acc_req_i),        // output wire [0 : 0] probe_out2
+  .probe_out3(acc_req_valid_i),  // output wire [0 : 0] probe_out3
+  .probe_out4(acc_resp_ready_i), // output wire [0 : 0] probe_out4
+  .probe_out5(axi_resp_i)        // output wire [0 : 0] probe_out5
   );
 
   import cf_math_pkg::idx_width;
@@ -453,8 +497,8 @@ module ara import ara_pkg::*; #(
     $error(
       "[ara] Cannot support single-precision floating-point on Ara if Ariane does not support it.");
 
-  if (RVVH(FPUSupport) && !ariane_pkg::XF16)
-    $error(
-      "[ara] Cannot support half-precision floating-point on Ara if Ariane does not support it.");
+//  if (RVVH(FPUSupport) && !ariane_pkg::XF16)
+//    $error(
+//      "[ara] Cannot support half-precision floating-point on Ara if Ariane does not support it.");
 
 endmodule : ara

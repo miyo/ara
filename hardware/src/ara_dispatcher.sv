@@ -42,7 +42,7 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
 
   import cf_math_pkg::idx_width;
 
-  `include "common_cells/registers.svh"
+  `include "registers.svh"
 
   assign core_st_pending_o = acc_req_i.store_pending;
 
